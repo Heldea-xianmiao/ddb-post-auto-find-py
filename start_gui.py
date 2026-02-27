@@ -46,7 +46,7 @@ except ImportError:
 class DDBMonitorGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("✨ DDB Beyond Sentinel v1.3")
+        self.root.title("✨ DDB Beyond Sentinel v1.4")
         self.root.geometry("950x750")
         self.root.configure(bg="#1e1e2e")
         
@@ -211,14 +211,15 @@ class DDBMonitorGUI:
 
     def _monitor_loop(self, s_id, e_id, day_iv, night_iv, qmsg_key):
         ids_str = f"{s_id}-{e_id}"
-        target_ids = core.parse_ids(ids_str)
+        target_ids = list(range(s_id, e_id + 1))
         session = requests.Session()
         session.headers.update({"User-Agent": core.USER_AGENT})
         
         if qmsg_key:
-            core.send_qq_msg(f"ddb帖子监测已启动 (ID: {s_id}-{e_id})", key=qmsg_key)
-        else:
-            logging.info("未设置 Qmsg Key，QQ 推送服务不可用，仅展示本地输出。")
+            try:
+                core.send_qq_msg(f"ddb帖子监测已启动 (ID: {s_id}-{e_id})", key=qmsg_key)
+            except:
+                pass
 
         while self.monitoring:
             try:

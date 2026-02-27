@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.spec
+!ddb帖子监测v1.4.spec
+dist/
+build/
