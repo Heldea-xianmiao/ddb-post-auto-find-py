@@ -131,10 +131,15 @@ def check_id_detailed(session: requests.Session, n: int) -> Dict[str, Any]:
 
         # 阻断判断
         blocked_phrases = r"(need to sign in|please sign in|sign in to view|log in|access denied|403 forbidden|登录|会员)"
-        is_blocked_page = bool(re.search(blocked_phrases, text, re.I))
-        is_explicit_403 = bool(re.search(r"(error-page-403|Forbidden - D&amp;D Beyond)", text, re.I))
         
-        body_len = len(_extract_body_text(text))
+        body_text = _extract_body_text(text)
+        body_len = len(body_text)
+        
+        # 修正：DDB全站头部新增了 Sign in to view，全局搜索会误杀。
+        # 这里如果提取到了正文，则只在正文搜索屏蔽词；如果没有正文，再搜索全局（这种情况下通常 body_len < 200 也会触发阻断）。
+        search_target = body_text if body_text else text
+        is_blocked_page = bool(re.search(blocked_phrases, search_target, re.I))
+        is_explicit_403 = bool(re.search(r"(error-page-403|Forbidden - D&amp;D Beyond)", text, re.I))
         
         if r.status_code == 403:
             if is_explicit_403:

@@ -22,7 +22,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='ddb帖子监测v1.4',
+    name='ddb帖子监测v2.1',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

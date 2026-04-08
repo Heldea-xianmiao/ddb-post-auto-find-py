@@ -3,6 +3,6 @@ __pycache__/
 *.pyo
 *.pyd
 *.spec
-!ddb帖子监测v1.4.spec
+!ddb帖子监测v2.1.spec
 dist/
 build/
