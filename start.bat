@@ -1,20 +1,19 @@
 @echo off
-chcp 65001 >nul
 setlocal
 
-rem DDB Beyond Sentinel â€” Windows å¯åŠ¨è„šæœ¬ï¼ˆéœ€å…ˆè¿è¡Œ deploy.batï¼‰
+rem DDB Beyond Sentinel - Windows Æô¶¯½Å±¾£¨ĞèÏÈÔËĞĞ deploy.bat£©
 
 cd /d "%~dp0"
 
 if not exist ".venv\Scripts\python.exe" (
-    echo [æç¤º] å°šæœªå®‰è£…ç¯å¢ƒï¼Œæ­£åœ¨è‡ªåŠ¨æ‰§è¡Œ deploy.bat ...
+    echo [ÌáÊ¾] ÉĞÎ´°²×°»·¾³£¬ÕıÔÚ×Ô¶¯Ö´ĞĞ deploy.bat ...
     call deploy.bat
     if errorlevel 1 exit /b 1
 )
 
-echo [å¯åŠ¨] DDB Beyond Sentinel ...
+echo [Æô¶¯] DDB Beyond Sentinel ...
 ".venv\Scripts\python.exe" start_gui.py
 
 echo.
-echo [åœæ­¢] ç¨‹åºå·²é€€å‡ºã€‚
+echo [Í£Ö¹] ³ÌĞòÒÑÍË³ö¡£
 pause

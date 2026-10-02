@@ -1,2 +1,7 @@
-# 统一文本文件行尾为 LF 存储，避免 CRLF/LF 混乱
-* text=auto
+# 统一文本文件行尾：默认以 LF 存储
+* text=auto eol=lf
+# Windows 批处理必须使用 CRLF，否则 cmd 解析会出错（闪退）
+*.bat text eol=crlf
+*.cmd text eol=crlf
+# Shell 脚本必须使用 LF
+*.sh text eol=lf
