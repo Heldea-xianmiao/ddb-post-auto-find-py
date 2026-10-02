@@ -1,0 +1,2 @@
+# 统一文本文件行尾为 LF 存储，避免 CRLF/LF 混乱
+* text=auto

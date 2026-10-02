@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DDB // SENTINEL</title>
+<style>
+:root {
+  --bg: #0f0d09;
+  --bg-panel: #14110b;
+  --bg-inset: #0a0806;
+  --line: #2c2517;
+  --line-dim: #1e1910;
+  --amber: #ffb454;
+  --amber-dim: #96733a;
+  --amber-bright: #ffd28f;
+  --amber-faint: rgba(255, 180, 84, 0.08);
+  --fg: #e8dcc0;
+  --fg-dim: #9a8f75;
+  --fg-faint: #5f5847;
+  --ok: #6fdc8c;
+  --warn: #ffc857;
+  --bad: #ff6b6b;
+  --neutral: #8a8578;
+  --mono: "Cascadia Code", "Cascadia Mono", Consolas, ui-monospace, "Microsoft YaHei UI", monospace;
+  --radius: 2px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { min-height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+::selection { background: rgba(255, 180, 84, 0.25); }
+
+/* ============ 铭牌条 ============ */
+.masthead {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-panel);
+  flex-wrap: wrap;
+}
+.masthead .mark {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+}
+.mark-block {
+  width: 14px; height: 14px;
+  background: var(--amber);
+  flex: none;
+}
+.wordmark {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--fg);
+  white-space: nowrap;
+}
+.wordmark .path { color: var(--amber); }
+.ver {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--fg-faint);
+  letter-spacing: 0.1em;
+  border: 1px solid var(--line);
+  padding: 1px 7px;
+  border-radius: var(--radius);
+}
+.masthead .readout {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 0 20px;
+  border-left: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.lamp-block { display: flex; align-items: center; gap: 8px; }
+.lamp {
+  width: 8px; height: 8px;
+  background: var(--fg-faint);
+  flex: none;
+}
+.lamp-block.on .lamp { background: var(--ok); animation: blink 1.6s steps(2, start) infinite; }
+@keyframes blink { 50% { opacity: 0.35; } }
+.lamp-label {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--fg-dim);
+  text-transform: uppercase;
+}
+.lamp-block.on .lamp-label { color: var(--ok); }
+.countdown {
+  font-size: 19px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--amber);
+  letter-spacing: 0.06em;
+  min-width: 96px;
+  text-align: right;
+}
+.countdown .unit { font-size: 10px; color: var(--fg-faint); letter-spacing: 0.1em; }
+
+main {
+  flex: 1;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 18px 20px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ============ 区块通用：面板 + 角标 ============ */
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--line-dim);
+  border-radius: var(--radius);
+  position: relative;
+}
+.panel.corner::before, .panel.corner::after,
+.panel.corner .c::before, .panel.corner .c::after {
+  content: "";
+  position: absolute;
+  width: 9px; height: 9px;
+  border-color: var(--amber-dim);
+  border-style: solid;
+  border-width: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.panel.corner::before { top: -1px; left: -1px; border-top-width: 2px; border-left-width: 2px; }
+.panel.corner::after { top: -1px; right: -1px; border-top-width: 2px; border-right-width: 2px; }
+.panel.corner .c::before { bottom: -1px; left: -1px; border-bottom-width: 2px; border-left-width: 2px; }
+.panel.corner .c::after { bottom: -1px; right: -1px; border-bottom-width: 2px; border-right-width: 2px; }
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line-dim);
+}
+.panel-head .tag {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+.panel-head .note { font-size: 11px; color: var(--fg-faint); }
+.panel-head .grow { flex: 1; }
+
+/* ============ 按钮 ============ */
+.btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 5px 14px;
+  cursor: pointer;
+  transition: color .12s, border-color .12s, background .12s;
+  white-space: nowrap;
+}
+.btn:hover { color: var(--fg); border-color: var(--amber-dim); }
+.btn.primary {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: #1a1206;
+  font-weight: 700;
+}
+.btn.primary:hover { background: var(--amber-bright); border-color: var(--amber-bright); }
+.btn.danger { color: var(--bad); border-color: rgba(255, 107, 107, 0.45); }
+.btn.danger:hover { background: rgba(255, 107, 107, 0.1); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ============ 配置工具栏 ============ */
+.cfg-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 22px;
+  align-items: flex-end;
+  padding: 13px 14px;
+}
+.field { display: flex; flex-direction: column; gap: 3px; }
+.field label {
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+}
+.field input {
+  background: var(--bg-inset);
+  border: none;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 5px 2px 4px;
+  width: 104px;
+  transition: border-color .12s;
+}
+.field input.wide { width: 250px; }
+.field input:focus {
+  outline: none;
+  border-bottom-color: var(--amber);
+}
+.field input::placeholder { color: var(--fg-faint); font-size: 12px; }
+.cfg-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  padding-bottom: 1px;
+  flex-wrap: wrap;
+}
+
+/* LLM 设置折叠区 */
+details.llm {
+  border-top: 1px solid var(--line-dim);
+}
+details.llm summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 8px 14px;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+}
+details.llm summary:hover { color: var(--amber); }
+details.llm summary::-webkit-details-marker { display: none; }
+details.llm summary .chev { transition: transform .15s; color: var(--amber-dim); }
+details.llm[open] summary .chev { transform: rotate(90deg); }
+.llm-status { margin-left: auto; letter-spacing: 0.05em; text-transform: none; font-size: 11px; }
+.llm-status.on { color: var(--ok); }
+.llm-status.off { color: var(--fg-faint); }
+.llm-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 22px;
+  align-items: flex-end;
+  padding: 4px 14px 14px;
+  border-top: 1px dashed var(--line-dim);
+}
+.llm-body .field input[type="password"] { width: 190px; }
+
+/* ============ 读数条 ============ */
+.readouts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  padding: 0;
+  border: 1px solid var(--line-dim);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  overflow: hidden;
+}
+.readout {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 18px;
+  border-right: 1px solid var(--line-dim);
+}
+.readout:last-child { border-right: none; }
+.readout .k {
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+}
+.readout .v {
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
+}
+.readout .v.ok { color: var(--ok); }
+.readout .v.warn { color: var(--warn); }
+.readout .v.dim { color: var(--neutral); }
+.readout .v.amber { color: var(--amber); }
+.readouts .placeholder {
+  padding: 9px 18px;
+  font-size: 11px;
+  color: var(--fg-faint);
+  letter-spacing: 0.04em;
+}
+
+/* ============ 数据表 ============ */
+.table-scroll { overflow-x: auto; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+thead th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-panel);
+  text-align: left;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--amber-dim);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+thead th:hover { color: var(--fg-dim); }
+thead th.sorted { color: var(--amber); }
+thead th .arrow { font-size: 8px; margin-left: 3px; }
+th.col-check, td.col-check { width: 30px; text-align: center; }
+th.col-id, td.col-id { width: 72px; }
+th.col-status, td.col-status { width: 168px; }
+th.col-reason, td.col-reason { width: 176px; }
+
+tbody td {
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--line-dim);
+  vertical-align: middle;
+}
+tbody tr { transition: background .1s; }
+tbody tr:hover { background: rgba(255, 180, 84, 0.045); }
+tbody tr:last-child td { border-bottom: none; }
+td.col-id { color: var(--fg-dim); font-variant-numeric: tabular-nums; }
+td.col-reason { color: var(--fg-faint); font-size: 11.5px; }
+
+/* 标题：中文翻译为主行，slug 为副行 */
+.title-cell { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.title-zh {
+  color: var(--fg);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.title-zh a { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--amber-dim); }
+.title-zh a:hover { color: var(--amber); border-bottom-color: var(--amber); }
+.title-en {
+  color: var(--fg-faint);
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.title-en a { color: inherit; text-decoration: none; }
+.title-en a:hover { color: var(--amber); }
+
+/* 状态：色块 + 文字，非徽章 */
+.status-cell { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.status-cell .sq { width: 9px; height: 9px; flex: none; }
+.status-cell.viewable { color: var(--ok); } .status-cell.viewable .sq { background: var(--ok); }
+.status-cell.partial { color: var(--warn); } .status-cell.partial .sq { background: var(--warn); }
+.status-cell.absent { color: var(--neutral); } .status-cell.absent .sq { background: var(--neutral); }
+.status-cell.error { color: var(--bad); } .status-cell.error .sq { background: var(--bad); }
+
+tr.changed td { background: var(--amber-faint); }
+tr.changed td:first-child { box-shadow: inset 3px 0 0 var(--amber); }
+tr.changed .status-cell { color: var(--amber); font-weight: 700; }
+tr.changed .status-cell .sq { background: var(--amber); }
+
+/* 复选框：方角仪器风 */
+input[type="checkbox"] {
+  appearance: none;
+  width: 13px; height: 13px;
+  border: 1px solid var(--line);
+  border-radius: 1px;
+  background: var(--bg-inset);
+  cursor: pointer;
+  vertical-align: middle;
+  transition: border-color .12s, background .12s;
+}
+input[type="checkbox"]:hover { border-color: var(--amber-dim); }
+input[type="checkbox"]:checked { background: var(--amber); border-color: var(--amber); }
+input[type="checkbox"]:checked::after {
+  content: "";
+  display: block;
+  width: 3px; height: 7px;
+  border: solid #1a1206;
+  border-width: 0 2px 2px 0;
+  transform: rotate(42deg);
+  margin: 0px auto;
+}
+
+.empty {
+  padding: 46px 20px;
+  text-align: center;
+  color: var(--fg-faint);
+  letter-spacing: 0.06em;
+}
+.empty .big {
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--amber-dim);
+  margin-bottom: 8px;
+}
+
+/* ============ 日志终端 ============ */
+.log-body { max-height: 170px; overflow-y: auto; }
+.log-body.collapsed { display: none; }
+.log-line {
+  padding: 1px 14px;
+  font-size: 11.5px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.log-line .t { color: var(--fg-faint); margin-right: 8px; }
+.log-line .lv { margin-right: 8px; font-size: 10px; letter-spacing: 0.08em; }
+.log-line.info .lv { color: var(--amber-dim); }
+.log-line.info .m { color: var(--fg-dim); }
+.log-line.warning .lv { color: var(--warn); }
+.log-line.warning .m { color: var(--warn); }
+.log-line.error .lv { color: var(--bad); }
+.log-line.error .m { color: var(--bad); }
+
+/* ============ toast ============ */
+#toast {
+  position: fixed;
+  bottom: 26px; left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: var(--bg-panel);
+  color: var(--fg);
+  border: 1px solid var(--amber-dim);
+  border-left: 3px solid var(--amber);
+  padding: 8px 18px;
+  font-size: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s, transform .18s;
+  z-index: 10;
+  max-width: 80vw;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-thumb { background: var(--line); border: 2px solid var(--bg-panel); }
+::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="mark">
+    <div class="mark-block"></div>
+    <div class="wordmark">DDB<span class="path">//</span>SENTINEL</div>
+    <span class="ver">v2.5</span>
+  </div>
+  <div class="readout">
+    <div class="lamp-block" id="lamp">
+      <div class="lamp"></div>
+      <span class="lamp-label" id="lamp-text">Standby</span>
+    </div>
+    <div class="countdown"><span id="countdown">--:--</span> <span class="unit" id="countdown-unit">IDLE</span></div>
+  </div>
+</header>
+
+<main>
+  <!-- 配置 -->
+  <section class="panel">
+    <div class="panel-head">
+      <span class="tag">监控参数</span>
+      <span class="note">ID 区间与轮询间隔；提交后立即生效</span>
+    </div>
+    <div class="cfg-row">
+      <div class="field">
+        <label for="start-id">起始 ID</label>
+        <input id="start-id" value="2230" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label for="end-id">终止 ID</label>
+        <input id="end-id" value="2260" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label for="extra-ids">额外 ID · 单独监控</label>
+        <input id="extra-ids" class="wide" placeholder="如 2100,2155-2158（可选）" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="day-iv">日间间隔 s</label>
+        <input id="day-iv" value="3600" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label for="night-iv">夜间间隔 s</label>
+        <input id="night-iv" value="900" inputmode="numeric">
+      </div>
+      <div class="cfg-actions">
+        <button class="btn" id="btn-copy-sel">复制选中</button>
+        <button class="btn" id="btn-copy-all">复制全部</button>
+        <button class="btn" id="btn-translate">翻译标题</button>
+        <button class="btn primary" id="btn-toggle">开始监测</button>
+      </div>
+    </div>
+    <details class="llm" id="llm-details">
+      <summary>
+        <span class="chev">▶</span> LLM 翻译设置
+        <span class="llm-status off" id="llm-status">未配置 — 标题将仅显示原文</span>
+      </summary>
+      <div class="llm-body">
+        <div class="field">
+          <label for="llm-url">API Base URL</label>
+          <input id="llm-url" class="wide" placeholder="https://api.openai.com/v1" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="llm-key">API Key</label>
+          <input id="llm-key" type="password" placeholder="已保存则留空" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="llm-model">模型</label>
+          <input id="llm-model" placeholder="gpt-4o-mini" spellcheck="false">
+        </div>
+        <div class="cfg-actions">
+          <button class="btn primary" id="btn-llm-save">保存配置</button>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- 读数 -->
+  <section class="readouts" id="readouts">
+    <span class="placeholder">NO SIGNAL — 启动监测后此处显示读数</span>
+  </section>
+
+  <!-- 数据表 -->
+  <section class="panel corner" style="flex:1;">
+    <span class="c"></span>
+    <div class="panel-head">
+      <span class="tag">帖子目录</span>
+      <span class="note" id="table-note">点击列头排序 · 勾选后可复制</span>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="col-check"><input type="checkbox" id="check-all" title="全选"></th>
+            <th class="col-id" data-key="id">ID</th>
+            <th class="col-status" data-key="status">状态</th>
+            <th data-key="title">标题 / 目录</th>
+            <th class="col-reason" data-key="reason">原因</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 日志 -->
+  <section class="panel">
+    <div class="panel-head">
+      <span class="tag">日志</span>
+      <span class="grow"></span>
+      <button class="btn" id="btn-log-toggle">收起</button>
+    </div>
+    <div class="log-body" id="log-body"></div>
+  </section>
+</main>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+
+const $ = (id) => document.getElementById(id);
+const state = {
+  rows: [],
+  sortKey: "id",
+  sortDesc: false,
+  selected: new Set(),
+  monitoring: false,
+  nextScanTs: null,
+  serverNow: 0,
+  localSync: 0,
+  configSynced: false,
+  translations: {},
+  llm: null,
+  translating: false,
+};
+
+const STATUS = {
+  viewable: { cls: "viewable", text: "可查看" },
+  partial:  { cls: "partial",  text: "存在·不可查看" },
+  absent:   { cls: "absent",   text: "不存在" },
+  error:    { cls: "error",    text: "请求异常" },
+};
+
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove("show"), 2400);
+}
+
+function escapeHtml(s) {
+  return String(s ?? "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  })[c]);
+}
+
+async function copyText(text, label) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (e) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
+  }
+  toast(label);
+}
+
+function rowTSV(r) {
+  const zh = state.translations[r.title] || "";
+  return [r.id, STATUS[r.tag].text, r.title, zh, r.reason_zh].join("\t");
+}
+
+function sortedRows() {
+  const rank = { viewable: 3, partial: 2, absent: 1, error: 0 };
+  const dir = state.sortDesc ? -1 : 1;
+  const key = state.sortKey;
+  return [...state.rows].sort((a, b) => {
+    let va, vb;
+    if (key === "id") { va = a.id; vb = b.id; }
+    else if (key === "status") { va = rank[a.tag]; vb = rank[b.tag]; }
+    else if (key === "title") { va = (state.translations[a.title] || a.title || ""); vb = (state.translations[b.title] || b.title || ""); }
+    else { va = a.reason_zh || ""; vb = b.reason_zh || ""; }
+    if (va < vb) return -1 * dir;
+    if (va > vb) return 1 * dir;
+    return a.id - b.id;
+  });
+}
+
+const EMPTY_HTML = `<tr><td colspan="5"><div class="empty">
+  <div class="big">No Signal</div>
+  尚未扫描任何帖子 — 填写 ID 范围后点击「开始监测」
+</div></td></tr>`;
+
+function renderTable() {
+  const tbody = $("tbody");
+  const rows = sortedRows();
+  if (!rows.length) { tbody.innerHTML = EMPTY_HTML; return; }
+
+  const frag = document.createDocumentFragment();
+  for (const r of rows) {
+    const s = STATUS[r.tag];
+    const tr = document.createElement("tr");
+    if (r.changed) tr.className = "changed";
+    const checked = state.selected.has(r.id) ? " checked" : "";
+
+    const zh = state.translations[r.title];
+    let titleHtml;
+    if (zh) {
+      const link = r.final_url
+        ? `<a href="${r.final_url}" target="_blank" rel="noopener">${escapeHtml(zh)}</a>`
+        : escapeHtml(zh);
+      const en = r.final_url
+        ? `<a href="${r.final_url}" target="_blank" rel="noopener">${escapeHtml(r.title)}</a>`
+        : escapeHtml(r.title);
+      titleHtml = `<div class="title-cell"><span class="title-zh" title="${escapeHtml(r.title)}">${link}</span><span class="title-en">${en}</span></div>`;
+    } else {
+      const en = r.final_url
+        ? `<a href="${r.final_url}" target="_blank" rel="noopener">${escapeHtml(r.title)}</a>`
+        : escapeHtml(r.title);
+      titleHtml = `<div class="title-cell"><span class="title-zh">${en}</span></div>`;
+    }
+
+    tr.innerHTML = `
+      <td class="col-check"><input type="checkbox" data-id="${r.id}"${checked}></td>
+      <td class="col-id">${r.id}</td>
+      <td class="col-status"><div class="status-cell ${s.cls}"><span class="sq"></span>${r.changed ? "◆ " : ""}${s.text}</div></td>
+      <td>${titleHtml}</td>
+      <td class="col-reason">${escapeHtml(r.reason_zh)}</td>`;
+    frag.appendChild(tr);
+  }
+  tbody.replaceChildren(frag);
+  $("check-all").checked = state.selected.size > 0 && state.selected.size === rows.length;
+}
+
+function renderReadouts() {
+  const el = $("readouts");
+  if (!state.rows.length) {
+    el.innerHTML = `<span class="placeholder">NO SIGNAL — 启动监测后此处显示读数</span>`;
+    return;
+  }
+  const c = { viewable: 0, partial: 0, absent: 0, error: 0 };
+  state.rows.forEach(r => c[r.tag]++);
+  const pad = (n) => String(n).padStart(3, "0");
+  el.innerHTML = `
+    <div class="readout"><span class="k">Total</span><span class="v">${pad(state.rows.length)}</span></div>
+    <div class="readout"><span class="k">可查看</span><span class="v ok">${pad(c.viewable)}</span></div>
+    <div class="readout"><span class="k">不可查看</span><span class="v warn">${pad(c.partial)}</span></div>
+    <div class="readout"><span class="k">不存在</span><span class="v dim">${pad(c.absent)}</span></div>
+    <div class="readout"><span class="k">已翻译</span><span class="v amber">${pad(state.rows.filter(r => state.translations[r.title]).length)}</span></div>`;
+}
+
+function renderLogs(logs) {
+  const el = $("log-body");
+  const autoScroll = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+  el.innerHTML = logs.map(l =>
+    `<div class="log-line ${l.level.toLowerCase()}"><span class="t">${l.time}</span><span class="lv">[${l.level}]</span><span class="m">${escapeHtml(l.msg)}</span></div>`
+  ).join("");
+  if (autoScroll) el.scrollTop = el.scrollHeight;
+}
+
+function renderLlm() {
+  const st = $("llm-status");
+  if (state.llm && state.llm.configured) {
+    st.textContent = `已配置 — ${state.llm.model}`;
+    st.className = "llm-status on";
+    if (!$("llm-url").value) $("llm-url").value = state.llm.base_url;
+    if (!$("llm-model").value) $("llm-model").value = state.llm.model;
+    $("llm-key").placeholder = "已保存（留空则沿用）";
+  } else {
+    st.textContent = "未配置 — 标题将仅显示原文";
+    st.className = "llm-status off";
+  }
+  const btn = $("btn-translate");
+  btn.textContent = state.translating ? "翻译中…" : "翻译标题";
+  btn.disabled = state.translating;
+}
+
+function renderRunState() {
+  const lamp = $("lamp");
+  lamp.classList.toggle("on", state.monitoring);
+  $("lamp-text").textContent = state.monitoring ? "Running" : "Standby";
+  const btn = $("btn-toggle");
+  btn.textContent = state.monitoring ? "结束监测" : "开始监测";
+  btn.className = state.monitoring ? "btn danger" : "btn primary";
+  updateCountdown();
+}
+
+function fmtDur(sec) {
+  sec = Math.max(0, Math.round(sec));
+  if (sec < 3600) {
+    const m = Math.floor(sec / 60), s = sec % 60;
+    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60);
+  return `${h}h${String(m).padStart(2, "0")}m`;
+}
+
+function updateCountdown() {
+  const el = $("countdown"), unit = $("countdown-unit");
+  if (!state.monitoring) { el.textContent = "--:--"; unit.textContent = "IDLE"; return; }
+  if (!state.nextScanTs) { el.textContent = "SCAN"; unit.textContent = "进行中"; return; }
+  const now = state.serverNow + (Date.now() - state.localSync) / 1000;
+  const remain = state.nextScanTs - now;
+  if (remain <= 0) { el.textContent = "SCAN"; unit.textContent = "即将开始"; }
+  else { el.textContent = fmtDur(remain); unit.textContent = "至下次扫描"; }
+}
+
+async function poll() {
+  try {
+    const res = await fetch("/api/status");
+    if (!res.ok) return;
+    const d = await res.json();
+    state.rows = d.table || [];
+    state.monitoring = d.monitoring;
+    state.nextScanTs = d.next_scan_ts;
+    state.serverNow = d.now;
+    state.localSync = Date.now();
+    state.translations = d.translations || {};
+    state.llm = d.llm;
+    state.translating = d.translating;
+    renderTable();
+    renderReadouts();
+    renderLogs(d.logs || []);
+    renderLlm();
+    renderRunState();
+    if (d.config && !state.configSynced) {
+      state.configSynced = true;
+      $("start-id").value = d.config.start_id;
+      $("end-id").value = d.config.end_id;
+      $("extra-ids").value = d.config.extra_ids || "";
+      $("day-iv").value = d.config.day_iv;
+      $("night-iv").value = d.config.night_iv;
+    }
+  } catch (e) { /* 网络抖动，下次轮询 */ }
+}
+
+async function post(path, body) {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body || {}),
+  });
+  return res.json();
+}
+
+async function toggleMonitor() {
+  const btn = $("btn-toggle");
+  btn.disabled = true;
+  try {
+    if (state.monitoring) {
+      await post("/api/stop");
+      toast("监测已停止");
+    } else {
+      const d = await post("/api/start", {
+        start_id: $("start-id").value.trim(),
+        end_id: $("end-id").value.trim(),
+        extra_ids: $("extra-ids").value.trim(),
+        day_iv: $("day-iv").value.trim(),
+        night_iv: $("night-iv").value.trim(),
+      });
+      if (!d.ok) { toast(d.error || "启动失败"); return; }
+      toast(`哨兵已启动 — 共监控 ${d.count} 个 ID`);
+    }
+    await poll();
+  } catch (e) {
+    toast("操作失败：" + e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ---------- 事件 ----------
+
+$("btn-toggle").addEventListener("click", toggleMonitor);
+
+$("btn-copy-all").addEventListener("click", () => {
+  if (!state.rows.length) { toast("表格暂无数据"); return; }
+  const text = "ID\t状态\t标题slug\t中文翻译\t原因\n" + sortedRows().map(rowTSV).join("\n");
+  copyText(text, `已复制全部 ${state.rows.length} 行（TSV）`);
+});
+
+$("btn-copy-sel").addEventListener("click", () => {
+  if (!state.selected.size) { toast("请先勾选要复制的行"); return; }
+  const text = sortedRows().filter(r => state.selected.has(r.id)).map(rowTSV).join("\n");
+  copyText(text, `已复制选中 ${state.selected.size} 行（TSV）`);
+});
+
+$("btn-translate").addEventListener("click", async () => {
+  if (!state.llm || !state.llm.configured) {
+    $("llm-details").open = true;
+    toast("请先填写并保存 LLM 翻译设置");
+    return;
+  }
+  const d = await post("/api/translate");
+  toast(d.ok ? "翻译任务已启动" : (d.error || "没有需要翻译的标题"));
+  setTimeout(poll, 800);
+});
+
+$("btn-llm-save").addEventListener("click", async () => {
+  const d = await post("/api/llm", {
+    base_url: $("llm-url").value.trim(),
+    api_key: $("llm-key").value.trim(),
+    model: $("llm-model").value.trim(),
+  });
+  if (d.ok) {
+    toast("LLM 配置已保存，翻译将自动进行");
+    $("llm-key").value = "";
+    await poll();
+  } else {
+    toast(d.error || "保存失败");
+  }
+});
+
+$("tbody").addEventListener("change", (e) => {
+  const cb = e.target.closest('input[type="checkbox"]');
+  if (!cb) return;
+  const id = Number(cb.dataset.id);
+  if (cb.checked) state.selected.add(id); else state.selected.delete(id);
+  $("check-all").checked = state.selected.size > 0 && state.selected.size === state.rows.length;
+});
+
+$("check-all").addEventListener("change", (e) => {
+  if (e.target.checked) state.rows.forEach(r => state.selected.add(r.id));
+  else state.selected.clear();
+  renderTable();
+});
+
+document.querySelectorAll("thead th[data-key]").forEach(th => {
+  th.addEventListener("click", () => {
+    const key = th.dataset.key;
+    if (state.sortKey === key) state.sortDesc = !state.sortDesc;
+    else { state.sortKey = key; state.sortDesc = false; }
+    document.querySelectorAll("thead th").forEach(t => {
+      t.classList.toggle("sorted", t.dataset.key === state.sortKey);
+      t.querySelector(".arrow")?.remove();
+    });
+    const a = document.createElement("span");
+    a.className = "arrow";
+    a.textContent = state.sortDesc ? "▼" : "▲";
+    th.appendChild(a);
+    renderTable();
+  });
+});
+
+$("btn-log-toggle").addEventListener("click", () => {
+  const body = $("log-body");
+  body.classList.toggle("collapsed");
+  $("btn-log-toggle").textContent = body.classList.contains("collapsed") ? "展开" : "收起";
+});
+
+setInterval(poll, 5000);
+setInterval(updateCountdown, 1000);
+poll();
+</script>
+</body>
+</html>
