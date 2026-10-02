@@ -21,7 +21,9 @@ import requests
 import monitor_core as core
 import translator as tr
 
-WEB_PORT = 8765
+# 监听地址与端口（可用环境变量覆盖，如 DDB_HOST=0.0.0.0）
+WEB_HOST = os.environ.get("DDB_HOST", "127.0.0.1")
+WEB_PORT = int(os.environ.get("DDB_PORT", "8765"))
 
 # 配置日志（同时输出到控制台与 Web 日志面板）
 logging.basicConfig(
@@ -355,12 +357,13 @@ def main():
     logging.getLogger().addHandler(WebLogHandler(app_state))
 
     index_path = resource_path(os.path.join("web", "index.html"))
-    server = ThreadingHTTPServer(("127.0.0.1", WEB_PORT), make_handler(app_state, index_path))
-    url = f"http://127.0.0.1:{WEB_PORT}"
+    server = ThreadingHTTPServer((WEB_HOST, WEB_PORT), make_handler(app_state, index_path))
+    url = f"http://{'127.0.0.1' if WEB_HOST in ('127.0.0.1', 'localhost') else WEB_HOST}:{WEB_PORT}"
     logging.info(f"DDB Beyond Sentinel v2.5 已就绪：{url}")
 
-    # 稍作延迟再打开浏览器，确保服务已可响应
-    threading.Timer(0.8, lambda: webbrowser.open(url)).start()
+    # 仅本机监听时自动打开浏览器（服务器部署无桌面环境则跳过）
+    if WEB_HOST in ("127.0.0.1", "localhost"):
+        threading.Timer(0.8, lambda: webbrowser.open(url)).start()
 
     try:
         server.serve_forever()
